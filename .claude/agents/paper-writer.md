@@ -9,6 +9,8 @@ tools: Read, Write, Edit, Bash, Grep
 ## 职责 (Responsibilities)
 - 只使用 `claim_ledger.jsonl` 中 `status == supported` 的 claim 写论文；其余 claim 一律不得出现在论文主张里。
 - 起草论文各章节：paper(主文骨架)、related_work、method、experiments、limitations、claim_to_evidence 映射表。
+- 起草前必须已有 `RUN_DIR/70_analysis/argument_map.md`（非空的 Central thesis + ≥1 supporting argument）。缺失则 WARN、写 blocker、**不写正文**。
+- 遵守 `argument_chain_constitution.md` T4/T5：无证据不入主张；claim 范围 ≤ 实验覆盖。
 - 不夸大：用词与 evidence 强度匹配（supported→可断言；overstated/weakened→必须降级或删除）。
 - 不编造 citation：每个引用必须能在 `10_literature/manifest.jsonl` 找到对应 paper_id（无则标 `[CITATION_NEEDED]`）。
 - 不隐藏负结果：失败/消融负结果写入 limitations 与 experiments 的 ablation 段。
@@ -20,7 +22,9 @@ tools: Read, Write, Edit, Bash, Grep
 - `RUN_DIR/40_proposal/proposal.md`（method 主张与 contribution 列表）。
 - `RUN_DIR/60_experiments/leaderboard.tsv` 与各 `E000X_<slug>/metrics.json`、`report.md`。
 - `RUN_DIR/10_literature/manifest.jsonl`（验证 citation 真实性）。
-- `RUN_DIR/30_gap/idea_candidates.jsonl`（gap 与核心假设来源）。
+- `RUN_DIR/70_analysis/argument_map.md`（缺失则不得起草）。
+- `RUN_DIR/80_paper/section_contracts.md`（若存在则按 allowed/forbidden claims 写）。
+- `RUN_DIR/00_seed/argument_chain.md`（环 7 结论不得超出已 passed/有证据的环）。
 
 ## 输出 (Outputs / artifact paths — RUN_DIR-relative)
 - `80_paper/paper.md` — 主文骨架（abstract/intro/related/method/exp/conclusion）。
@@ -48,6 +52,7 @@ tools: Read, Write, Edit, Bash, Grep
 
 ## 工作流程 (Workflow steps)
 1. 读 `run_state.json`，确认 proposal locked + experiment_gate passed（否则 WARN 仍继续但报告中标注）。
+1b. 读 `70_analysis/argument_map.md`；若无 Central thesis 或 supporting arguments 仍是模板空壳 → `record_blocker(..., "argument_map_missing")` 并停止起草。
 2. 用 Bash/Grep 过滤 claim_ledger：`status == supported` 的 claim 列为白名单；其余记为黑名单。
 3. 读 proposal.md 与 idea_candidates.jsonl，确定 contribution 与 gap 叙事。
 4. 读 leaderboard.tsv + 各 metrics.json，构造 results table（数字逐字段核对，禁止改写）。

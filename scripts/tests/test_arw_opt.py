@@ -296,6 +296,63 @@ class TestInitRun(unittest.TestCase):
             self.assertEqual(state["literature_mode"], "directed")
             self.assertEqual(state["current_state"], "S1_RESEARCH_SEED_PLAN")
             self.assertTrue((rd / "50_code" / "protected_files.yaml").is_file())
+            self.assertTrue((rd / "00_seed" / "argument_chain.md").is_file())
+            self.assertTrue((rd / "70_analysis" / "argument_map.md").is_file())
+            import validate_argument_chain
+            self.assertEqual(validate_argument_chain.main(["--run-dir", str(rd)]), 0)
+
+
+class TestArgumentChain(unittest.TestCase):
+    def test_missing_file_ok(self):
+        import validate_argument_chain
+        with tempfile.TemporaryDirectory() as td:
+            self.assertEqual(validate_argument_chain.main(["--run-dir", td]), 0)
+
+    def test_bad_traceability_hard_fail(self):
+        import validate_argument_chain
+        with tempfile.TemporaryDirectory() as td:
+            rd = Path(td)
+            (rd / "00_seed").mkdir()
+            (rd / "00_seed" / "argument_chain.md").write_text(
+                "---\ntraceability: T9\n---\n## 3. Eight-ring status\n"
+                "| 1 Why | x |\n| 2 Prior work | x |\n| 3 Gap | x |\n| 4 Bottleneck | x |\n"
+                "| 5 Method | x |\n| 6 Experiments | x |\n| 7 Conclusions | x |\n| 8 Insight | x |\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(validate_argument_chain.main(["--run-dir", str(rd)]), 1)
+
+    def test_orphan_claim_id_hard_fail(self):
+        import validate_argument_chain
+        with tempfile.TemporaryDirectory() as td:
+            rd = Path(td)
+            (rd / "00_seed").mkdir()
+            (rd / "40_proposal").mkdir(parents=True)
+            tmpl = (REPO / "templates" / "argument_chain.md").read_text(encoding="utf-8")
+            tmpl = tmpl.replace(
+                "|----------|-------|-----------------------------------|-------------|----------|-------|-------|\n",
+                "|----------|-------|-----------------------------------|-------------|----------|-------|-------|\n"
+                "| C9999 | ghost | none | literature | weak | none | D |\n",
+            )
+            (rd / "00_seed" / "argument_chain.md").write_text(tmpl, encoding="utf-8")
+            (rd / "40_proposal" / "claim_ledger.jsonl").write_text(
+                json.dumps({"claim_id": "C0001", "claim": "x"}) + "\n", encoding="utf-8")
+            self.assertEqual(validate_argument_chain.main(["--run-dir", str(rd)]), 1)
+
+    def test_constitution_has_no_private_suite_dump(self):
+        text = (REPO / "argument_chain_constitution.md").read_text(encoding="utf-8")
+        self.assertNotIn("XJTU3DSAIL", text)
+        self.assertNotIn("3dsail-research-workflow-suite", text)
+        self.assertIn("I1", text)
+
+    def test_literature_search_cli(self):
+        cp = subprocess.run(
+            [sys.executable, str(SCRIPTS / "literature_search.py"), "-h"],
+            capture_output=True, text=True, cwd=str(REPO),
+        )
+        self.assertEqual(cp.returncode, 0, cp.stderr)
+        blob = cp.stdout + cp.stderr
+        self.assertIn("search", blob)
+        self.assertNotIn("3dsail", blob.lower())
 
 
 class TestLiveRunUntouchedContract(unittest.TestCase):

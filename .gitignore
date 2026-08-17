@@ -12,3 +12,5 @@ research_runs/*
 .DS_Store
 .venv/
 venv/
+*.zip
+3dsail-suite-main/

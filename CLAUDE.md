@@ -1,10 +1,12 @@
 # CLAUDE.md — Autonomous Research Workflow Controller
 
-> Full normative spec: `autonomous_research_workflow_prompt.md`. This file is the
-> **operational project-level directive** for Claude Code. When the two disagree, the
-> spec is authoritative for *what* the rules are; this file is authoritative for
-> *how this repo executes them*. The chat context is **never** a source of truth —
-> files are. Read state before acting; write state after acting.
+> Full normative spec: `autonomous_research_workflow_prompt.md`. Argument-layer
+> source of truth: `argument_chain_constitution.md` (8 rings, T1–T7, rehab R1–R7,
+> incision I1–I5). This file is the **operational project-level directive** for
+> Claude Code. Spec wins on *workflow rules*; constitution wins on *what a
+> defensible argument is*; this file wins on *how this repo executes them*.
+> The chat context is **never** a source of truth — files are. Read state before
+> acting; write state after acting.
 
 ## 0. Role
 
@@ -56,12 +58,12 @@ The operator kick-off file is `LAUNCH.md` (repo root). When the operator says
 "按 LAUNCH.md 启动" / "start per LAUNCH.md" / otherwise references `LAUNCH.md` to begin a run:
 
 1. Read `LAUNCH.md` and parse the **启动表单** fields: `run_mode`, `topic`,
-   `research_direction`, `target_repo`, `dataset`, `compute`, `codex_network`, `venue`,
-   `seeds`, `literature_mode`, `extra`.
+   `research_direction`, `target_repo`, `rehab_materials`, `dataset`, `compute`,
+   `codex_network`, `venue`, `seeds`, `literature_mode`, `extra`.
 2. **Snapshot the filled form** to `<RUN_DIR>/00_seed/intake.md` — the durable record of
-   what the operator provided for this run. If `run_mode=new` with a `topic`, first create a
-   fresh run dir `research_runs/<YYYY-MM-DD_<topic_slug>>/` (§3 structure + seed files via
-   the same pattern as the initial run) and point `.active_run` at it.
+   what the operator provided for this run. If `run_mode=new` or `rehab` with a `topic`,
+   first create a fresh run dir `research_runs/<YYYY-MM-DD_<topic_slug>>/` (§3 structure
+   + seed files via `scripts/init_run.py` or the same pattern) and point `.active_run` at it.
 3. **Apply the inputs**:
    - rewrite `00_seed/{first_plan,initial_gap,search_queries}.md` with the real topic;
    - move every resolved item out of `memory/open_questions.md` into `memory/decisions.md`;
@@ -73,10 +75,20 @@ The operator kick-off file is `LAUNCH.md` (repo root). When the operator says
      if blank/`待定`/`默认`, default to **`directed`** when `research_direction` is concrete,
      else **`exploratory`**. `directed` compresses S2–S5 (opposing-set harvest, not a 30-paper
      quota). `exploratory` keeps the full literature quotas.
-4. Advance `run_state.current_state` to `S2_LITERATURE_COLLECTION`, add the harvest task to
-   `state/task_queue.json`, run `python3 scripts/generate_next_actions.py`, and dispatch
-   `paper-harvester`. **Do not re-ask the operator.**
-5. Remind the operator the blank template is recoverable with `git checkout LAUNCH.md`.
+4. **If `run_mode=rehab`**: copy `rehab_materials` into `00_seed/rehab_source/` (fail-soft
+   if a path is missing). Run the `draft-rehab` skill **before** S2 harvest. Fill
+   `00_seed/argument_chain.md` (T0/T1/T2, source-audit, 补料清单). Append honest
+   `claim_ledger.jsonl` rows (`status=planned` unless an existing `metrics.json` actually
+   supports them — never invent `supported`). Then continue from the **weakest honest
+   ARW state** (usually `S2_LITERATURE_COLLECTION` with `literature_mode=directed` if
+   literature is `[Unverified]`; `S8_BASELINE` only if `50_code/target_repo` and real
+   experiment artifacts already exist). **Never auto-pass `baseline_gate` or
+   `experiment_gate`.** Never invent a pre-experiment 动机合同 (constitution R2).
+5. **If `run_mode` is not rehab**: advance `run_state.current_state` to
+   `S2_LITERATURE_COLLECTION`, add the harvest task to `state/task_queue.json`, run
+   `python3 scripts/generate_next_actions.py`, and dispatch `paper-harvester`.
+   **Do not re-ask the operator.**
+6. Remind the operator the blank template is recoverable with `git checkout LAUNCH.md`.
 
 A field left blank / `待定` / `默认` is valid (fail-soft): record it in
 `memory/open_questions.md` and proceed; the relevant gate blocks later if still missing.
@@ -108,7 +120,8 @@ run stays at `S1_RESEARCH_SEED_PLAN` (correct, not a bug).
   state/      run_state.json, task_queue.json, resource_locks.json, current_goal.md, blockers.jsonl
   memory/     compact_snapshot.md, compact_resume_prompt.md, next_actions.md (generated),
                   next_actions.journal.md (handwritten archive), decisions.md, open_questions.md
-  00_seed/    first_plan.md, initial_gap.md, search_queries.md
+  00_seed/    first_plan.md, initial_gap.md, search_queries.md, argument_chain.md,
+                  rehab_source/ (optional; rehab launch)
   10_literature/  manifest.jsonl, provenance_audit.md, bib/references.bib
                   {core,adjacent_a,adjacent_b,adjacent_c}/{papers,code}/
   20_notes/   cards/ (PXXXX_<slug>.md), paper_card_schema.md, synthesis_matrix.md
@@ -117,9 +130,10 @@ run stays at `S1_RESEARCH_SEED_PLAN` (correct, not a bug).
                   {feasibility,novelty,reviewer2}_reviews/, revision_history.md
   50_code/    repo_map.md, protected_files.yaml, implementation_plan.md, target_repo/
   60_experiments/ experiment_ledger.md, leaderboard.tsv, failure_taxonomy.md, E000X_<slug>/
-  70_analysis/ ablations.md, significance_tests.md, error_analysis.md, result_synthesis.md
+  70_analysis/ ablations.md, significance_tests.md, error_analysis.md, result_synthesis.md,
+                  argument_map.md
   80_paper/   paper.md, related_work.md, method.md, experiments.md, limitations.md,
-                  claim_to_evidence.md, figures/, tables/
+                  claim_to_evidence.md, section_contracts.md, figures/, tables/
   90_package/ reproducibility_checklist.md, artifact_manifest.json, submission_readiness_report.md,
                   final_gate_report.md
   subagent_reports/   <agent>_<timestamp>.md
@@ -261,7 +275,8 @@ is unavailable record `codex_status=unavailable` and fall back to reviewer2+resu
 ## 11. Skills (`.claude/skills/`)
 
 Templates/reusable flows (not independent contexts): `paper-deep-note`,
-`research-gap-finder`, `idea-evaluator`, `tech-paper-template`, `benchmark-extractor`,
+`research-gap-finder`, `find-incision`, `draft-rehab`, `argument-diagnosis`,
+`style-polish`, `idea-evaluator`, `tech-paper-template`, `benchmark-extractor`,
 `experiment-log-summarizer`, `failure-forensics`, `reproducibility-checker`. Each has a
 `SKILL.md` with when-to-use / inputs / outputs / steps / quality gate.
 
@@ -276,7 +291,8 @@ absolute paths). `arw_hook.sh` `cd`s to this repo from `BASH_SOURCE`.
   `git clean -fd[-x]`; blocks edits to the eval harness unless
   `run_state.current_state == S_EVAL_HARNESS_REVISION`.
 - **PostToolUse** (after code/file edits): `run_lint.sh`, `run_smoke_tests.sh`,
-  `validate_run_state.py`, `validate_claim_ledger.py`, `validate_experiment_report.py`
+  `validate_run_state.py`, `validate_claim_ledger.py`, `validate_experiment_report.py`,
+  `validate_argument_chain.py` (when `argument_chain.md` / `claim_ledger.jsonl` change)
   (each `|| true` / fail-soft — they warn, they do not block normal editing).
 - **SubagentStop**: each subagent must emit a structured summary to `subagent_reports/`
   and update `task_queue.json` before stopping.

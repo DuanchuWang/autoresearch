@@ -36,6 +36,7 @@ TREE = [
     "state",
     "memory",
     "00_seed",
+    "00_seed/rehab_source",
     "10_literature/core/papers",
     "10_literature/core/code",
     "10_literature/adjacent_a/papers",
@@ -234,6 +235,14 @@ def build_run(run_dir: Path, run_id: str, topic: str, literature_mode: str,
     _write(run_dir / "00_seed" / "first_plan.md", f"# First plan\n\nTopic: {topic}\n\n(rewrite at S1)\n")
     _write(run_dir / "00_seed" / "initial_gap.md", "# Initial gap\n\n(rewrite at S1)\n")
     _write(run_dir / "00_seed" / "search_queries.md", "# Search queries\n\n(rewrite at S1)\n")
+    chain_src = REPO_ROOT / "templates" / "argument_chain.md"
+    if chain_src.is_file():
+        text = (chain_src.read_text(encoding="utf-8")
+                .replace("{{TOPIC}}", topic)
+                .replace("{{RUN_ID}}", run_id))
+        _write(run_dir / "00_seed" / "argument_chain.md", text)
+    else:
+        _write(run_dir / "00_seed" / "argument_chain.md", f"# Argument chain\n\nTopic: {topic}\n")
 
     _write(run_dir / "10_literature" / "manifest.jsonl", "")
     _write(run_dir / "10_literature" / "provenance_audit.md", "# Provenance audit\n")
@@ -281,9 +290,19 @@ def build_run(run_dir: Path, run_id: str, topic: str, literature_mode: str,
 
     for name in ("ablations.md", "significance_tests.md", "error_analysis.md", "result_synthesis.md"):
         _write(run_dir / "70_analysis" / name, f"# {name[:-3]}\n")
+    argmap_src = REPO_ROOT / "templates" / "writing" / "03_argument_map.md"
+    if argmap_src.is_file():
+        shutil.copy2(argmap_src, run_dir / "70_analysis" / "argument_map.md")
+    else:
+        _write(run_dir / "70_analysis" / "argument_map.md", "# Argument map\n")
     for name in ("paper.md", "related_work.md", "method.md", "experiments.md",
                  "limitations.md", "claim_to_evidence.md"):
         _write(run_dir / "80_paper" / name, f"# {name[:-3]}\n")
+    contracts_src = REPO_ROOT / "templates" / "writing" / "04_section_contracts.md"
+    if contracts_src.is_file():
+        shutil.copy2(contracts_src, run_dir / "80_paper" / "section_contracts.md")
+    else:
+        _write(run_dir / "80_paper" / "section_contracts.md", "# Section contracts\n")
     _write(run_dir / "90_package" / "reproducibility_checklist.md", "# Reproducibility checklist\n")
     atomic_write_text(run_dir / "90_package" / "artifact_manifest.json",
                       json.dumps({"artifacts": []}, indent=2))
@@ -296,7 +315,7 @@ def build_run(run_dir: Path, run_id: str, topic: str, literature_mode: str,
            f"- literature_mode: {literature_mode}\n"
            f"- target: {target_note}\n"
            f"- truth: `state/run_state.json`, `state/task_queue.json`, "
-           f"`40_proposal/claim_ledger.jsonl`\n")
+           f"`40_proposal/claim_ledger.jsonl`, `00_seed/argument_chain.md`\n")
 
 
 def main(argv=None) -> int:

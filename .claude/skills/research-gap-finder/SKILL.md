@@ -23,6 +23,7 @@ description: Use when synthesizing research gaps and idea candidates (S4_GAP_SYN
 
 ## 禁止事项
 - 禁止产出“无 opposing paper”的 idea（每个 idea 必须 ≥1 opposing，否则改为 limitation_claim 而非 idea）。
+- 禁止把“没人做过 / 填补空白”当成 gap（切口标准 I4）；gap 必须回答“填了这个坑解锁什么”，并有外部文献。
 - 禁止编造 paper_id；所有 supporting/opposing 必须存在于 manifest。
 - 禁止覆盖已有 idea_candidates.jsonl（追加；若 idea_id 冲突则改后缀 `_b`）。
 - 禁止把“主观感受”当 gap；gap 必须有 ≥2 篇文献或 1 个可量化指标做支撑。
@@ -37,7 +38,7 @@ description: Use when synthesizing research gaps and idea candidates (S4_GAP_SYN
 1. 校验前置：读 `run_state.literature_mode`（缺省 exploratory）。exploratory：`load_jsonl(MANIFEST_REL)` 中 status=read 的 core≥15、adjacent 三类各≥5；directed：core≥8 且 adjacent_a（opposing）≥5。不满足则 `record_blocker('gap_insufficient_cards')` 软失败退出。
 2. 聚类：扫所有 card 的 `## 局限与质疑` 与 claim_ledger 中 type=limitation_claim 条目，按“问题域”聚类（如“长距离检测 / 小目标 / 时序融合”）。每簇写入 gap_report 第一段“已知方案”。
 3. 提共性局限：对每簇统计高频局限关键词，写成表格列 `局限 | 出现论文 | 量化证据`。
-4. 找空白：对每条共性局限，反查是否有论文直接解决；若 manifest 中无 `method_claim` 覆盖该局限，记为“未被解决的问题”。
+4. 找空白：对每条共性局限，反查是否有论文直接解决；若 manifest 中无 `method_claim` 覆盖该局限，记为“未被解决的问题”。对照 I1–I5（`argument_chain_constitution.md`）：I3 单一机理、I4 动机不是 publication gap、I5 有可测预测。可选：`python3 scripts/literature_search.py collision` / `gold` 补 opposing 与召回审计。
 5. 生成 idea：对每个“未被解决的问题”，构造一条 idea_candidates.jsonl 行，字段：
    `idea_id=I0001..` / `title` / `gap`（引用上一步空白）/ `core_hypothesis`（可证伪陈述）/ `technical_contributions[]`（≥1）/ `supporting_papers[]`（≥1，来自 card）/ `opposing_papers[]`（≥1）/ `possible_datasets[]` / `possible_baselines[]` / `expected_risks[]`（≥1）/ `minimum_viable_experiment`（一句话可执行描述）。
 6. 自检：每个 idea 必须 `len(supporting_papers)>=1 and len(opposing_papers)>=1 and len(expected_risks)>=1`，否则丢弃并记入 open_questions。

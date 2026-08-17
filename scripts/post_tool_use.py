@@ -3,6 +3,7 @@
 
 Fires after Write/Edit/NotebookEdit/MultiEdit. Runs the cheapest relevant checks:
   - ALWAYS: validate_run_state.py, validate_claim_ledger.py, validate_experiment_report.py
+  - if argument_chain.md or claim_ledger.jsonl: validate_argument_chain.py
   - if the edited file is *.py: run_lint.sh on that file; if it is code under
     ARW_SMOKE_SCOPE (default 50_code/target_repo/,methods/), also run_smoke_tests.sh.
 
@@ -32,6 +33,10 @@ SMOKE_SCOPE = tuple(
 NEXT_ACTIONS_TRIGGERS = (
     "state/run_state.json",
     "state/task_queue.json",
+)
+ARGUMENT_CHAIN_TRIGGERS = (
+    "00_seed/argument_chain.md",
+    "40_proposal/claim_ledger.jsonl",
 )
 
 
@@ -81,6 +86,9 @@ def main() -> int:
     if any(rel_posix.endswith(t) for t in NEXT_ACTIONS_TRIGGERS):
         rc, _ = _run(["python3", str(HERE / "generate_next_actions.py")])
         notes.append(f"next_actions:{'ok' if rc == 0 else 'warn'}")
+    if any(rel_posix.endswith(t) for t in ARGUMENT_CHAIN_TRIGGERS):
+        rc, _ = _run(["python3", str(HERE / "validate_argument_chain.py")])
+        notes.append(f"argument_chain:{'ok' if rc == 0 else 'warn'}")
 
     if not QUIET:
         log(TAG, "INFO", f"post-edit {rel or '(?)'} -> " + ", ".join(notes))
