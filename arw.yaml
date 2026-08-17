@@ -1,0 +1,8 @@
+# Optional overlay for this checkout. All values may be overridden by env vars.
+
+# Python module to import during scripts/run_smoke_tests.sh (empty = skip).
+# smoke_import: mmdet3d
+
+# Comma-separated path prefixes (relative to this repo or the target repo)
+# that trigger smoke after a Python edit. Env: ARW_SMOKE_SCOPE
+# smoke_scope: 50_code/target_repo/,methods/

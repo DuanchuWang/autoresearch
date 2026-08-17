@@ -1,0 +1,9 @@
+# Live runs are ignored by the repo-root .gitignore (research_runs/*).
+# This file exists so the empty research_runs/ directory is tracked.
+# If you later force-add a run for archival, still drop weights:
+*.pth
+*.pkl
+*.ckpt
+*.safetensors
+**/checkpoints/**
+.active_run

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.claude/worktrees/
+research_runs/.active_run
+research_runs/*
+!research_runs/.gitignore
+*.pth
+*.pkl
+*.ckpt
+*.safetensors
+*.log
+.DS_Store
+.venv/
+venv/

@@ -1,0 +1,26 @@
+# Protected vs modifiable paths (generic). Copy into RUN_DIR/50_code/protected_files.yaml
+# and specialize at S7 (repo-mapper). {{RUN_ID}} is replaced by init_run.py.
+#
+# Editing any path under `protected:` requires
+#   state/run_state.json.current_state == S_EVAL_HARNESS_REVISION
+
+run_id: "{{RUN_ID}}"
+
+protected:
+  - "data/raw/**"
+  - "eval/**"
+  - "**/evaluate*.py"
+  - "official_metrics/**"
+  - "research_runs/{{RUN_ID}}/10_literature/**"
+  - "research_runs/{{RUN_ID}}/20_notes/**"
+  - "research_runs/{{RUN_ID}}/40_proposal/claim_ledger.jsonl"
+  - "research_runs/{{RUN_ID}}/60_experiments/experiment_ledger.md"
+  - "research_runs/{{RUN_ID}}/60_experiments/leaderboard.tsv"
+  - "research_runs/{{RUN_ID}}/state/run_state.json"
+
+modifiable:
+  - "methods/**"
+  - "research_runs/{{RUN_ID}}/60_experiments/E000X_*/**"
+  - "research_runs/{{RUN_ID}}/50_code/implementation_plan.md"
+
+required_state_for_protected_edits: S_EVAL_HARNESS_REVISION
